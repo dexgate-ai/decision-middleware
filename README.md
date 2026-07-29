@@ -14,10 +14,10 @@ OpenClaw (MIDDLEWARE mode)  →  this package (:8787 /v1/decide)  →  SDE PDP (
 - `decide` / `decideSafe` → `DecisionResponse` (async)
 - Policy evaluation via **SDE Enterprise PDP**
 - `trace_id` per request; reconstructible **evidence**
-- `passport` always `null` in free/local mode (issuance is out of scope here)
+- `passport` is **always `null`** in the decision-middleware v0.1 response; upstream SDE Passport issuance is not surfaced through this package
 - Default when unclear or PDP failure = **deny** (fail closed)
 
-No Passport issuance and no persistence in this package. The only network call is to the configured SDE PDP.
+This package does not issue Passports and does not persist decisions. Entitled SDE runtime workflows may still issue, verify, expire, and revoke Passports outside this envelope. The only network call from this package is to the configured SDE PDP.
 
 ## Install
 
@@ -215,7 +215,7 @@ Mapping:
 - Codex SKU: tool call → `inputs.request.{ runtime, toolName, command, origin, … }`
 - `context.environment` → top-level `environment`
 - PDP `decision` → Dexgate `allow|deny|constrain|escalate`
-- PDP passport is **not** returned (`passport: null` in free/local mode)
+- Upstream SDE Passport material is **not** returned (`passport` is always `null` in this package’s v0.1 response)
 
 `decide` / `decideSafe` / `evaluatePolicy` are **async** (HTTP I/O).
 

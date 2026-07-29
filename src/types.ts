@@ -92,7 +92,10 @@ export interface ToolDecision {
   decision: DecisionOutcome;
   reason: string;
   modified_arguments: Record<string, unknown> | null;
-  /** Null in free/local mode (v0.1). */
+  /**
+   * Always null in decision-middleware v0.1.
+   * Upstream SDE Passport issuance is not surfaced through this package.
+   */
   passport: string | null;
   evidence: DecisionEvidence;
 }

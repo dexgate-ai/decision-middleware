@@ -467,7 +467,7 @@ function stringField(value: unknown): string | null {
  * Map an SDE PDP authorize response into a Dexgate PolicyEvaluation-shaped
  * outcome. Unclear / missing / partial decision → deny (fail closed).
  *
- * Passport is intentionally not propagated (free/local mode keeps null).
+ * Passport is intentionally not propagated (always null in this package’s v0.1 response).
  * Constraints are reflected in reason + risk_signals; modified_arguments stays null.
  */
 export function mapAuthorizeResponse(

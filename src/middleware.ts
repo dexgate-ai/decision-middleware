@@ -4,7 +4,7 @@
  * Contract v0.1:
  * - Every tool call gets exactly one decision.
  * - Default when unclear = deny.
- * - passport is always null (free/local mode).
+ * - passport is always null in v0.1 (upstream SDE Passport issuance is not surfaced here).
  * - evidence is always present and reconstructible.
  *
  * Policy evaluation delegates to the SDE Enterprise PDP (HTTP).
@@ -223,7 +223,7 @@ async function decideOne(
     decision: evaluation.decision,
     reason: evaluation.reason,
     modified_arguments: evaluation.modified_arguments,
-    passport: null, // free/local mode — v0.1 (PDP passport not surfaced here)
+    passport: null, // always null in v0.1 — upstream SDE Passport issuance not surfaced
     evidence: {
       proposal: {
         tool_call_id: toolCall.id,

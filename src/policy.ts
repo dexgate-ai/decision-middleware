@@ -3,9 +3,9 @@
  *
  * Rules of engagement:
  * - Default when unclear or PDP failure = deny (fail closed).
- * - passport remains null at the Dexgate contract layer (free/local mode).
+ * - passport remains null at the Dexgate contract layer (v0.1; not free-mode-only).
  * - SKU / policy_variant: context → env → defaults (OpenClaw + guard-pro).
- * - No local Passport issuance; no persistence in this package.
+ * - No Passport issuance in this package; no persistence.
  */
 
 import type { DecisionContext, PolicyEvaluation, RiskSignal } from "./types.js";

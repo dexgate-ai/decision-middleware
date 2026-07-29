@@ -62,7 +62,7 @@ function assertContractShape(response: DecisionResponse, expectedCount: number) 
     );
     assert.equal(typeof d.reason, "string");
     assert.ok(d.reason.length > 0);
-    assert.equal(d.passport, null, "passport must be null in free/local mode");
+    assert.equal(d.passport, null, "passport must always be null in decision-middleware v0.1");
     assert.ok(d.evidence, "evidence must always be present");
     assert.equal(d.evidence.policy_version, POLICY_VERSION);
     assert.equal(typeof d.evidence.evaluated_at, "string");
