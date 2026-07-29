@@ -1,0 +1,61 @@
+{
+  "name": "@dexgate/decision-middleware",
+  "version": "0.1.0",
+  "description": "Dexgate Decision Execution Governance middleware — evaluate tool calls via SDE PDP (contract v0.1). HTTP /v1/decide + library API.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "dexgate-decision-middleware": "./dist/server.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build",
+    "start": "tsx src/server.ts",
+    "start:dist": "node dist/server.js",
+    "test": "tsx --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "dexgate",
+    "decision-middleware",
+    "governance",
+    "sde",
+    "pdp",
+    "policy",
+    "openclaw",
+    "agent-authorization"
+  ],
+  "homepage": "https://github.com/dexgate-ai/decision-middleware#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dexgate-ai/decision-middleware.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dexgate-ai/decision-middleware/issues"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}
