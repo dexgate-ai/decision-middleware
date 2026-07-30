@@ -23,8 +23,64 @@ import type {
 } from "./types.js";
 import { POLICY_VERSION } from "./types.js";
 
+/**
+ * Canonical environments: `dev` | `staging` | `production`.
+ * Common aliases (case-insensitive):
+ * - production ← prod, prd
+ * - staging ← stage, stg, qa
+ * - dev ← development, local
+ */
+export function normalizeEnvironment(value: unknown): Environment | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const e = value.trim().toLowerCase();
+  if (e === "production" || e === "prod" || e === "prd") return "production";
+  if (e === "staging" || e === "stage" || e === "stg" || e === "qa") {
+    return "staging";
+  }
+  if (e === "dev" || e === "development" || e === "local") return "dev";
+  return null;
+}
+
 function isEnvironment(value: unknown): value is Environment {
-  return value === "dev" || value === "staging" || value === "production";
+  return normalizeEnvironment(value) != null;
+}
+
+/** Compact one-line JSON summary for ops / conversion tuning. No args or tokens. */
+export function logDecisionSummary(fields: {
+  tool: string;
+  decision: string;
+  deny_code: string | null;
+  latency_ms: number;
+  trace_id: string;
+  policy_variant: string | null;
+}): void {
+  console.log(
+    JSON.stringify({
+      type: "decision_summary",
+      tool: fields.tool,
+      decision: fields.decision,
+      deny_code: fields.deny_code,
+      latency_ms: fields.latency_ms,
+      trace_id: fields.trace_id,
+      policy_variant: fields.policy_variant,
+    })
+  );
+}
+
+function extractDenyCode(signals: { code: string; message: string }[]): string | null {
+  const hit = signals.find((s) => s.code === "sde_pdp_deny_code");
+  return hit?.message?.trim() ? hit.message.trim() : null;
+}
+
+function extractPolicyVariant(
+  signals: { code: string; message: string }[]
+): string | null {
+  const hit = signals.find((s) => s.code === "sde_pdp_policy_variant");
+  if (!hit?.message) return null;
+  const m = hit.message.match(/policy_variant=(\S+)/i);
+  if (m?.[1]) return m[1];
+  const trimmed = hit.message.trim();
+  return trimmed || null;
 }
 
 function parseArguments(raw: string): {
@@ -88,10 +144,12 @@ export function validateRequest(input: unknown): {
   if (typeof ctx.trusted_mode !== "boolean") {
     return { ok: false, error: "context.trusted_mode must be a boolean." };
   }
-  if (!isEnvironment(ctx.environment)) {
+  const environment = normalizeEnvironment(ctx.environment);
+  if (!environment) {
     return {
       ok: false,
-      error: 'context.environment must be "dev" | "staging" | "production".',
+      error:
+        'context.environment must be "dev" | "staging" | "production" (aliases: prod→production, qa/stage/stg→staging, development/local→dev).',
     };
   }
   if (ctx.deployment_id !== null && typeof ctx.deployment_id !== "string") {
@@ -120,11 +178,11 @@ export function validateRequest(input: unknown): {
   }
 
   const context: DecisionContext = {
-    agent_id: ctx.agent_id,
-    session_id: ctx.session_id,
-    model: ctx.model,
-    trusted_mode: ctx.trusted_mode,
-    environment: ctx.environment,
+    agent_id: ctx.agent_id as string,
+    session_id: ctx.session_id as string,
+    model: ctx.model as string,
+    trusted_mode: ctx.trusted_mode as boolean,
+    environment,
     deployment_id: ctx.deployment_id as string | null,
   };
 
@@ -182,14 +240,16 @@ export function validateRequest(input: unknown): {
 async function decideOne(
   toolCall: ToolCall,
   context: DecisionContext,
-  evaluatedAt: string
+  evaluatedAt: string,
+  traceId: string
 ): Promise<ToolDecision> {
+  const started = Date.now();
   const { parsed, parse_error } = parseArguments(toolCall.function.arguments);
   const toolName = toolCall.function.name;
 
   // Invalid JSON arguments → deny (unclear)
   if (parse_error) {
-    return {
+    const decision: ToolDecision = {
       tool_call_id: toolCall.id,
       decision: "deny",
       reason: `Denied: tool arguments are not valid JSON (${parse_error}).`,
@@ -214,11 +274,20 @@ async function decideOne(
         ],
       },
     };
+    logDecisionSummary({
+      tool: toolName || "(unknown)",
+      decision: decision.decision,
+      deny_code: "invalid_arguments_json",
+      latency_ms: Date.now() - started,
+      trace_id: traceId,
+      policy_variant: null,
+    });
+    return decision;
   }
 
   const evaluation = await evaluatePolicy(toolName, parsed, context);
 
-  return {
+  const decision: ToolDecision = {
     tool_call_id: toolCall.id,
     decision: evaluation.decision,
     reason: evaluation.reason,
@@ -237,6 +306,18 @@ async function decideOne(
       risk_signals: evaluation.risk_signals,
     },
   };
+  logDecisionSummary({
+    tool: toolName || "(unknown)",
+    decision: decision.decision,
+    deny_code:
+      decision.decision === "deny"
+        ? extractDenyCode(evaluation.risk_signals)
+        : null,
+    latency_ms: Date.now() - started,
+    trace_id: traceId,
+    policy_variant: extractPolicyVariant(evaluation.risk_signals),
+  });
+  return decision;
 }
 
 /**
@@ -261,7 +342,9 @@ export async function decide(
   const evaluated_at = new Date().toISOString();
 
   const decisions = await Promise.all(
-    request.tool_calls.map((tc) => decideOne(tc, request.context, evaluated_at))
+    request.tool_calls.map((tc) =>
+      decideOne(tc, request.context, evaluated_at, trace_id)
+    )
   );
 
   return { trace_id, decisions };
@@ -278,6 +361,14 @@ export async function decideSafe(input: unknown): Promise<DecisionResponse> {
   const evaluated_at = new Date().toISOString();
 
   if (!validated.ok) {
+    logDecisionSummary({
+      tool: "(request)",
+      decision: "deny",
+      deny_code: "malformed_request",
+      latency_ms: 0,
+      trace_id,
+      policy_variant: null,
+    });
     return {
       trace_id,
       decisions: [

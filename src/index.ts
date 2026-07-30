@@ -9,6 +9,8 @@ export {
   decide,
   decideSafe,
   validateRequest,
+  normalizeEnvironment,
+  logDecisionSummary,
   DecisionRequestError,
 } from "./middleware.js";
 

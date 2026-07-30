@@ -76,6 +76,9 @@ Stdout logs:
 
 - HTTP: `METHOD path status [trace_id=...]`
 - Live PDP: `sde_pdp authorize sku=... decision=... latency_ms=... host=...` (no full payloads)
+- **Decision summary (one JSON line per tool decision):**  
+  `{"type":"decision_summary","tool":"…","decision":"allow|deny|…","deny_code":null,"latency_ms":12,"trace_id":"…","policy_variant":"…"}`  
+  No tool arguments, tokens, or full evidence — light signal for conversion and policy tuning.
 
 ## Usage
 
@@ -150,8 +153,21 @@ context: {
   policy_variant?: string; // e.g. "guard-pro.v2026.02" or "codex-guard.v0.1.0"
   tenant_id?: string;      // per-request SDE tenant (overrides SDE_PDP_TENANT_ID)
   gateway_id?: string;     // per-request SDE gateway (overrides SDE_PDP_GATEWAY_ID)
+  environment: "dev" | "staging" | "production"; // see aliases below
 }
 ```
+
+### Environment vocabulary
+
+Canonical values accepted after normalization:
+
+| Canonical | Accepted aliases (case-insensitive) |
+|-----------|-------------------------------------|
+| `dev` | `development`, `local` |
+| `staging` | `stage`, `stg`, `qa` |
+| `production` | `prod`, `prd` |
+
+Unknown labels are rejected at validation. PEPs should send canonical values when possible; aliases are normalized before authorize.
 
 **Tenant / gateway routing:** Prefer per-request `context.tenant_id` and `context.gateway_id` when PEPs (e.g. OpenClaw) supply them. If omitted, the middleware falls back to process env defaults (`SDE_PDP_TENANT_ID`, `SDE_PDP_GATEWAY_ID`).
 

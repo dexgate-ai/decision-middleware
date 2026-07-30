@@ -215,6 +215,45 @@ describe("validateRequest accepts optional selection fields", () => {
     }
   });
 
+  it("normalizes environment aliases (prod, qa, stage)", async () => {
+    const { normalizeEnvironment } = await import("../src/middleware.js");
+    assert.equal(normalizeEnvironment("prod"), "production");
+    assert.equal(normalizeEnvironment("prd"), "production");
+    assert.equal(normalizeEnvironment("qa"), "staging");
+    assert.equal(normalizeEnvironment("stage"), "staging");
+    assert.equal(normalizeEnvironment("development"), "dev");
+    assert.equal(normalizeEnvironment("local"), "dev");
+    assert.equal(normalizeEnvironment("nope"), null);
+
+    const prod = validateRequest({
+      tool_calls: [],
+      context: {
+        agent_id: "a",
+        session_id: "s",
+        model: "m",
+        trusted_mode: false,
+        environment: "prod",
+        deployment_id: null,
+      },
+    });
+    assert.equal(prod.ok, true);
+    if (prod.ok) assert.equal(prod.request.context.environment, "production");
+
+    const qa = validateRequest({
+      tool_calls: [],
+      context: {
+        agent_id: "a",
+        session_id: "s",
+        model: "m",
+        trusted_mode: false,
+        environment: "qa",
+        deployment_id: null,
+      },
+    });
+    assert.equal(qa.ok, true);
+    if (qa.ok) assert.equal(qa.request.context.environment, "staging");
+  });
+
   it("accepts optional tenant_id and gateway_id without requiring them", () => {
     const withIds = validateRequest({
       tool_calls: [],
