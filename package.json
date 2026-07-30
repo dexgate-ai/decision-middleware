@@ -1,6 +1,6 @@
 {
   "name": "@dexgate/decision-middleware",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Dexgate Decision Execution Governance middleware — evaluate tool calls via SDE PDP (contract v0.1). HTTP /v1/decide + library API.",
   "type": "module",
   "main": "./dist/index.js",
@@ -17,6 +17,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "package.json"
   ],
